@@ -33,8 +33,8 @@ type DtoScheduledStep struct {
 }
 
 // convertRollout convert the rollout configuration in a Flag_data format.
-func (dr *DtoRollout) convertRollout() *Rollout {
-	if dr == nil {
+func (dr *DtoRollout) convertRollout(version int) *Rollout {
+	if dr == nil || (dr.Scheduled == nil && dr.Experimentation == nil) {
 		return nil
 	}
 
@@ -44,9 +44,14 @@ func (dr *DtoRollout) convertRollout() *Rollout {
 	if dr.Scheduled != nil {
 		scheduled := ScheduledRollout{Steps: []ScheduledStep{}}
 		for _, item := range dr.Scheduled.Steps {
-			f, _ := item.ConvertToFlagData(true)
+			var convertedDtoFlag FlagData
+			if version < 1 {
+				convertedDtoFlag = ConvertV0DtoToFlag(item.DtoFlag, true)
+			} else {
+				convertedDtoFlag = ConvertV1DtoToFlag(item.DtoFlag, true)
+			}
 			scheduled.Steps = append(scheduled.Steps, ScheduledStep{
-				FlagData: f,
+				FlagData: convertedDtoFlag,
 				Date:     item.Date,
 			})
 		}
